@@ -6,5 +6,5 @@ Website gồm hướng dẫn cài đặt, cấu hình đầy đủ, vòng lặp 
 nhân vật/kỹ năng, GUI KaMenu dialog, tích hợp, PlaceholderAPI, xử lý lỗi và API
 cho developer.
 
-Mở `index.html` trực tiếp để xem ở máy local, hoặc bật GitHub Pages từ nhánh
-`main` để xuất bản wiki.
+Mở `docs/index.html` trực tiếp để xem ở máy local. GitHub Pages của repository
+này được cấu hình lấy nội dung từ nhánh `main` và thư mục `docs/`.
