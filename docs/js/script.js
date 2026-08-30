@@ -44,11 +44,11 @@ plugins/
 `,
   files: `
 plugins/CauCaVanCanCore/
-  config.yml                    # battle, EXP, message, reset, database
+  config.yml                    # battle, EXP, message, reset, database, fish-health formula
   character-core.yml            # level, thuộc tính, stat, skill character
   bait.yml                      # toàn bộ mồi và hiệu ứng
   souls.yml                     # Linh Hồn theo hồ, craft Cần câu Linh Hồn
-  fishing-skills.yml            # skill câu cá native, stamina MMOCore (riêng)
+  fishing-skills.yml            # skill câu cá native, Stamina CCVC (riêng)
   fish/
     spawns.yml                  # hồ/region, tỉ lệ cá/rác, cá độc quyền
     categories/
@@ -131,6 +131,20 @@ fishing-energy:
 
 # Permission caucavancan.energy.300 hay .500 cũng hợp lệ.
 # Có nhiều node thì core lấy mức CAO NHẤT, không cộng dồn.
+`,
+  fishHealth: `
+# config.yml
+fish-health:
+  enabled: true
+  formula: "weight"          # 5kg = 5 máu
+  base: 0.0
+  multiplier: 1.0
+  minimum: 1.0
+  maximum: 100000.0
+
+# Công thức hỗ trợ weight, base, multiplier và + - * / với ngoặc.
+# Ví dụ: "weight * 2 + 10" => cá 5kg có 20 máu.
+# enabled: false => dùng health tĩnh trong file fish riêng.
 `,
   soul: `
 # souls.yml (đặt enabled: true sau khi MMOItems item đã tồn tại)
@@ -307,7 +321,7 @@ const sections = [
   },
   {
     id: "pools", title: "Hồ, cá độc quyền, premium", icon: "map", keywords: "pools worldguard regions spawns exclusive premium lake large trash chance", desc: "Tạo hồ thường, cá độc quyền mỗi hồ và hồ premium theo nhóm nguồn.",
-    html: `<div class="content-grid"><div class="doc-card half"><h3>Hồ thường</h3>${codeBlock("fish/spawns.yml", snippets.spawn, "yaml")}<p><code>fish</code> là bảng trọng số theo phần trăm: tổng phải là <strong>100</strong>. <code>trash</code> cũng phải đúng 100 nếu có dùng. <code>required-level</code> thuộc hồ, còn <code>required-level</code> trong file fish là điều kiện riêng của loài.</p></div><div class="doc-card half"><h3>Cá độc quyền</h3><p>Độc quyền được định nghĩa <strong>theo hồ</strong>, không theo rarity. Đặt ID cá trong <code>exclusive-fish</code> của đúng region. Cá đó vẫn phải có trong map <code>fish</code> cùng hồ và phải có reward trong <code>loot.yml</code>.</p>${callout("warn", "Lỗi <code>exclusive-fish id must also be in fish</code> nghĩa là một ID exclusive thiếu ở map <code>fish</code> của chính hồ. Lỗi <code>Unknown fish id</code> nghĩa là file fish/category chưa cung cấp ID đó.")}</div><div class="doc-card"><h3>Hồ premium</h3>${codeBlock("premium-pools.yml", snippets.premium, "yaml")}<p>Premium pool thu thập fish + exclusive fish của các <code>source-pools</code>. Người chơi cần permission của hồ (mặc định <code>caucavancan.premium</code>) hoặc ticket premium còn hạn. <code>excluded-rarities</code> chỉ lọc cá thường; exclusive fish của hồ nguồn vẫn được giữ. <code>large-rarity-bonus: 0.05</code> tăng 5% trọng số cá thường <code>LARGE</code>, không tăng exclusive và không tăng <code>VERY_LARGE</code>.</p></div></div>`
+    html: `<div class="content-grid"><div class="doc-card half"><h3>Hồ thường</h3>${codeBlock("fish/spawns.yml", snippets.spawn, "yaml")}<p><code>fish</code> là bảng trọng số theo phần trăm: tổng phải là <strong>100</strong>. <code>trash</code> cũng phải đúng 100 nếu có dùng. <code>required-level</code> thuộc hồ, còn <code>required-level</code> trong file fish là điều kiện riêng của loài.</p></div><div class="doc-card half"><h3>Cá độc quyền</h3><p>Độc quyền được định nghĩa <strong>theo hồ</strong>, không theo rarity. Đặt ID cá trong <code>exclusive-fish</code> của đúng region. Cá đó vẫn phải có trong map <code>fish</code> cùng hồ và phải có reward trong <code>loot.yml</code>.</p>${callout("warn", "Lỗi <code>exclusive-fish id must also be in fish</code> nghĩa là một ID exclusive thiếu ở map <code>fish</code> của chính hồ. Lỗi <code>Unknown fish id</code> nghĩa là file fish/category chưa cung cấp ID đó.")}</div><div class="doc-card"><h3>Hồ premium</h3>${codeBlock("premium-pools.yml", snippets.premium, "yaml")}<p>Premium pool thu thập fish + exclusive fish của các <code>source-pools</code>. Người chơi cần permission của hồ (mặc định <code>caucavancan.premium</code>) hoặc ticket premium còn hạn. <code>excluded-rarities</code> chỉ lọc cá thường; exclusive fish của hồ nguồn vẫn được giữ. <code>large-rarity-bonus: 0.05</code> tăng 5% trọng số cá thường <code>LARGE</code>, không tăng exclusive và không tăng <code>VERY_LARGE</code>.</p></div><div class="doc-card"><h3>Máu cá theo cân nặng</h3>${codeBlock("config.yml → fish-health", snippets.fishHealth, "yaml")}<p>Core tính máu khi cá cắn câu bằng cân nặng thực tế của phiên câu. Công thức mặc định <code>weight</code> nên cá 5kg có 5 máu. Giá trị sau công thức được giới hạn trong <code>minimum</code>/<code>maximum</code>; health của MythicMob cũng được đồng bộ để không chết sớm do max health template.</p></div></div>`
   },
   {
     id: "souls-energy", title: "Linh Hồn và Năng lượng", icon: "sparkles", keywords: "soul souls linh hon soul fishing rod craft energy nang luong capacity permission vault mmoitems", desc: "Linh Hồn theo từng hồ/cá độc quyền và Năng lượng câu cá riêng, không dùng chung MMOCore.",
@@ -326,8 +340,8 @@ const sections = [
     html: `<div class="content-grid"><div class="doc-card">${codeBlock("character-core.yml", snippets.character, "yaml")}</div><div class="doc-card half"><h3>Ba thuộc tính</h3>${table(["Thuộc tính", "Stat mặc định mỗi điểm"], [["Khoẻ", "<code>health +5</code>, <code>pull-power +1</code>."],["Đẹp", "<code>rare-fish-chance +1</code>, <code>pull-critical +0.5</code>."],["Khôn", "<code>mana +5</code>, <code>skill-critical +0.5</code>."]])}<p>Không cần hard-code lore kiểu “cộng điểm nào tăng cái nào”: dialog/menu đọc <code>attributes.*.stats</code> và stat breakdown từ config để hiển thị.</p></div><div class="doc-card half"><h3>Reset /att</h3><p><code>/att</code> mở attribute menu/dialog. <code>/att reset</code> reset điểm đã cộng về 0 và trả lại điểm. Cùng hành động reset cũng có nút trong <code>gui/attribute-dialog.yml</code> với action <code>ccvc:attribute-reset</code>.</p><p>Phí reset, provider Vault/PlayerPoints, format và message ở một vùng <code>attribute-reset</code> trong <code>config.yml</code>. Cấu hình đúng provider đang có; không bật phí PlayerPoints nếu plugin/service đó vắng mặt.</p></div><div class="doc-card"><h3>Stat mở rộng và MMOItems</h3><p><code>base-stats</code> khai báo stat nền. <code>item-stat-mapping</code> nối ID stat CCVC tới ID stat MMOItems/MythicLib như <code>FISHING_POWER</code>, <code>RARE_FISH_CHANCE</code>, <code>LINE_STRENGTH</code>. Có thể thêm stat ID mới vào config; developer/plugin khác có thể lấy bằng API <code>getStat</code> và <code>getStatBreakdown</code>.</p></div></div>`
   },
   {
-    id: "skills", title: "Kỹ năng", icon: "sparkles", keywords: "skill character tree loadout mythicmobs stamina mmocore damage", desc: "Skill tree, hotbar loadout, skill native, stamina MMOCore và MythicMobs bridge.",
-    html: `<div class="content-grid"><div class="doc-card half"><h3>Skill CCVC</h3><p><code>skills/categories/</code> chứa category; <code>skills/definitions/</code> chứa definition. Người chơi mở loadout bằng <code>/skill</code> hoặc <code>/fish skills</code>, tree bằng <code>/skill tree</code>. Bind skill vào các key 1-6; cần câu vẫn ở key/slot 7.</p>${codeBlock("skill definition", snippets.skill, "yaml")}</div><div class="doc-card half"><h3>Skill native và stamina</h3><p><code>fishing-skills.yml</code> cấu hình skill native (ví dụ <code>dieu-hon</code>). <code>stamina-cost</code> là stamina MMOCore bị trừ cho <strong>mỗi lần</strong> cast. Đặt <code>0</code> để không tiêu stamina. Nếu người chơi thiếu stamina, core không cast skill và không bắt đầu cooldown.</p><p>Skill definition có requirement level/permission/quest/skill, upgrade cost skill points/gold/donate points và stats theo level.</p></div><div class="doc-card"><h3>MythicMobs: damage đúng cách</h3>${codeBlock("MythicMobs skill", snippets.mythic, "yaml")}<p><code>MYTHIC_PLAYER</code> có caster là người câu và target là cá trong CCVC session. Core gửi <code>&lt;skill.var.ccvc_skill_damage&gt;</code> và <code>&lt;skill.power&gt;</code>, đồng thời intercept damage Mythic để trừ vào thanh máu CCVC. <code>MYTHIC_FISH</code> dành cho effect/skill từ phía cá. Dùng biến do core cấp để skill damage theo level/stat thay vì hard-code damage trong MythicMobs.</p></div></div>`
+    id: "skills", title: "Kỹ năng", icon: "sparkles", keywords: "skill character tree loadout mythicmobs stamina energy damage", desc: "Skill tree, hotbar loadout, stamina CCVC và MythicMobs bridge.",
+    html: `<div class="content-grid"><div class="doc-card half"><h3>Skill CCVC</h3><p><code>skills/categories/</code> chứa category; <code>skills/definitions/</code> chứa definition. Người chơi mở loadout bằng <code>/skill</code> hoặc <code>/fish skills</code>, tree bằng <code>/skill tree</code>. Bind skill vào các key 1-6; cần câu vẫn ở key/slot 7.</p>${codeBlock("skill definition", snippets.skill, "yaml")}</div><div class="doc-card half"><h3>Skill native và stamina</h3><p><code>fishing-skills.yml</code> cấu hình skill native (ví dụ <code>dieu-hon</code>). <code>stamina-cost</code> là Stamina riêng của CCVC, bị trừ cho <strong>mỗi lần</strong> cast; không đọc MMOCore và không phải Năng lượng câu cá. Đặt <code>0</code> để không tiêu Stamina. Nếu người chơi thiếu Stamina, core không cast skill và không bắt đầu cooldown.</p><p>Skill definition có requirement level/permission/quest/skill, upgrade cost skill points/gold/donate points và stats theo level.</p></div><div class="doc-card"><h3>MythicMobs: damage đúng cách</h3>${codeBlock("MythicMobs skill", snippets.mythic, "yaml")}<p><code>MYTHIC_PLAYER</code> có caster là người câu và target là cá trong CCVC session. Core gửi <code>&lt;skill.var.ccvc_skill_damage&gt;</code> và <code>&lt;skill.power&gt;</code>, đồng thời intercept damage Mythic để trừ vào thanh máu CCVC. <code>MYTHIC_FISH</code> dành cho effect/skill từ phía cá. Dùng biến do core cấp để skill damage theo level/stat thay vì hard-code damage trong MythicMobs.</p><p>Cooldown của skill nằm ở definition CCVC và chỉ bắt đầu sau khi Mythic cast thành công. Core ưu tiên các execution type <code>MYTHIC_PLAYER</code> ngay cả khi ID trùng trong <code>fishing-skills.yml</code>. Các alias <code>cooldown</code>/<code>execution.cooldown</code> được hiểu là giây. Skill cũ dùng <code>@self</code> cho damage vẫn được bridge chuyển damage về cá đang câu, nhưng nên đổi sang <code>@target</code>.</p></div></div>`
   },
   {
     id: "menus", title: "GUI và KaMenu dialog", icon: "panels-top-left", keywords: "gui menu kamenu dialog attribute dialog main menu position button format", desc: "Chest GUI YAML và attribute dialog hoàn toàn có thể chỉnh vị trí, thứ tự, text và format.",
