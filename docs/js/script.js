@@ -47,7 +47,8 @@ plugins/CauCaVanCanCore/
   config.yml                    # battle, EXP, message, reset, database, fish-health formula
   character-core.yml            # level, thuộc tính, stat, skill character
   bait.yml                      # toàn bộ mồi và hiệu ứng
-  souls.yml                     # Linh Hồn theo hồ, craft Cần câu Linh Hồn
+  souls.yml                     # Mảnh ghép theo hồ; recipe do MMOItems Crafting Station xử lý
+  personal-boosts.yml           # Đan dược boost cá nhân từ MMOItems CONSUMABLE
   fishing-skills.yml            # skill câu cá native, Stamina CCVC (riêng)
   fish/
     spawns.yml                  # hồ/region, tỉ lệ cá/rác, cá độc quyền
@@ -57,11 +58,11 @@ plugins/CauCaVanCanCore/
         TEN_CA.yml
   loot.yml                      # reward MMOItems + rarity/classification
   premium-pools.yml             # hồ premium và nguồn cá
-  daily-quests.yml              # nhiệm vụ ngày
+  daily-quests.yml              # nhiệm vụ ngày, random quests-per-day
   tug-pvp.yml                   # PvP tranh cá
-  gui/                          # toàn bộ chest menu và KaMenu dialog
+  gui/                          # menu chính, quest, phúc lợi toàn server và KaMenu dialog
   skills/                       # character skill tree/definition
-  mmoitems/                     # mapping/kiểu item MMOItems
+  mmoitems/                     # mapping/kiểu item MMOItems, mảnh và Crafting Station mẫu
 `,
   fish: `
 # plugins/CauCaVanCanCore/fish/categories/02_cap_tram_can/VUONG_CA_CHEP.yml
@@ -102,6 +103,10 @@ worlds:
 `,
   premium: `
 # premium-pools.yml
+daily-ticket:
+  timezone: Asia/Bangkok
+  maximum-seconds: 86400        # tối đa 24 giờ vé mỗi ngày
+
 pools:
   premium_lake:
     enabled: true
@@ -161,35 +166,44 @@ fish-health:
 # enabled: false => dùng health tĩnh trong file fish riêng.
 `,
   soul: `
-# souls.yml (đặt enabled: true sau khi MMOItems item đã tồn tại)
+# souls.yml
+# CCVC cấp mảnh MMOItems; MMOItems Crafting Station tự xử lý recipe/cần câu.
 enabled: true
+crafting-station: ccvc-soul-forge
 souls:
-  LINH_HON_XUXIAN:
-    display-name: "&dLinh Hồn Xuxian"
-    mmoitems: {type: SOUL, id: LINH_HON_XUXIAN}
-  LINH_HON_SSS_ABC:
-    display-name: "&6&lLinh Hồn SSS ABC"
-    mmoitems: {type: SOUL, id: LINH_HON_SSS_ABC}
+  MANH_HO_BO_HOANG:
+    display-name: "&dMảnh Hồ Bỏ Hoang"
+    mmoitems: {type: MISCELLANEOUS, id: MANH_HO_BO_HOANG}
 pools:
   ho_bo_hoang:
     regular:
-      chance: 0.20              # 20% cho mỗi rác/SMALL/MEDIUM thành công
+      chance: 0.20              # 20% cho mỗi reward rác/SMALL/MEDIUM thành công
       include-trash: true
       eligible-rarities: [SMALL, MEDIUM]
       amount: 1
-      souls: {LINH_HON_XUXIAN: 1}
+      souls: {MANH_HO_BO_HOANG: 1}
     exclusive:
       VUONG_CA_CHEP:
         chance: 0.20            # chỉ cá độc quyền này mới có roll này
-        soul: LINH_HON_SSS_ABC
+        soul: MANH_HO_BO_HOANG
         amount: 1
-crafts:
-  can_cau_linh_hon_xuxian:
-    display-name: "&dCần câu Linh Hồn Xuxian"
-    soul: LINH_HON_XUXIAN
-    soul-amount: 20
-    money: 100000               # 0 nếu chỉ cần Linh Hồn
-    result: {type: TOOL, id: CAN_CAU_LINH_HON_XUXIAN}
+# Copy mmoitems/crafting-stations/ccvc-soul-forge.yml sang MMOItems,
+# khai báo recipe rồi chạy /mi reload.
+`,
+  personalBoosts: `
+# personal-boosts.yml
+boosts:
+  EXP_15:
+    boost-type: EXP
+    percent: 15
+    one-shot: false
+    duration-seconds: 1800       # 30 phút
+    mmoitems: {type: CONSUMABLE, id: CCVC_EXP_15}
+  BIG_FISH_15:
+    boost-type: BIG_FISH
+    percent: 15
+    one-shot: true               # mất sau lượt câu kế tiếp kết thúc
+    mmoitems: {type: CONSUMABLE, id: CCVC_BIG_FISH_15}
 `,
   sell: `
 # gui/sell-menu.yml
@@ -375,7 +389,7 @@ const sections = [
   },
   {
     id: "placeholders", title: "PlaceholderAPI", icon: "braces", keywords: "placeholderapi placeholders caucavancan stats exp fish tug stamina recovery 24h daily quest leaderboard", desc: "Danh sách placeholder do expansion %caucavancan_...% đăng ký.",
-    html: `<div class="content-grid"><div class="doc-card"><h3>Player và phiên câu</h3>${table(["Placeholder", "Giá trị"], [["<code>%caucavancan_total_caught%</code>", "Tổng câu thành công."],["<code>%caucavancan_failed%</code>, <code>attempts</code>, <code>streak</code>, <code>best_streak</code>", "Thống kê cơ bản."],["<code>%caucavancan_success_rate%</code>", "Tỷ lệ thành công (%)."],["<code>%caucavancan_largest_weight%</code>, <code>total_weight</code>", "Cân lớn nhất/tổng cân."],["<code>%caucavancan_fishing_level%</code>, <code>character_exp%</code>, <code>next_level_exp%</code>", "Tiến trình character."],["<code>%caucavancan_attribute_points%</code>, <code>skill_points%</code>, <code>mana%</code>", "Tài nguyên character."],["<code>%caucavancan_stamina%</code>, <code>stamina_max%</code>, <code>stamina_percent%</code>", "Stamina skill CCVC hiện tại/tối đa/phần trăm."],["<code>%caucavancan_fishing_energy%</code>, <code>fishing_energy_max%</code>, <code>fishing_energy_percent%</code>", "Năng lượng câu cá CCVC hiện tại/tối đa/phần trăm."],["<code>%caucavancan_fishing_energy_recovery%</code>", "Thời gian còn lại để Năng lượng câu cá đầy, dạng đọc được (<code>24h</code>, <code>2h 15m</code>, <code>Đầy</code>)."],["<code>%caucavancan_fishing_energy_recovery_seconds%</code>", "Thời gian hồi Năng lượng câu cá còn lại bằng giây."],["<code>%caucavancan_fishing_energy_recovery_total%</code>", "Tổng thời gian hồi Năng lượng câu cá, mặc định <code>24h</code>."],["<code>%caucavancan_is_fishing%</code>, <code>fish_name%</code>, <code>fish_id%</code>, <code>fish_rarity%</code>", "Trạng thái/cá đang đấu."],["<code>%caucavancan_fish_health%</code>, <code>fish_health_max%</code>, <code>line_current%</code>, <code>line_max%</code>", "Chỉ số session."],["<code>%caucavancan_tug_active%</code>, <code>tug_players%</code>, <code>tug_leader%</code>", "Tug PvP."]])}</div><div class="doc-card half"><h3>Placeholder động</h3><ul><li><code>%caucavancan_stat_&lt;stat-id&gt;%</code>: stat ID, dấu <code>_</code> chuyển thành <code>-</code>.</li><li><code>%caucavancan_attribute_&lt;id&gt;%</code>: level thuộc tính, ví dụ <code>attribute_khoe</code>.</li><li><code>%caucavancan_skill_level_&lt;id&gt;%</code>: skill level.</li><li><code>%caucavancan_bait_used_&lt;type&gt;%</code>: số mồi type đã dùng.</li><li><code>%caucavancan_soul_&lt;soul-id&gt;%</code>: số Soul CCVC có trong inventory của player online.</li><li><code>%caucavancan_daily_quest_1_id%</code>, <code>_type</code>, <code>_target</code>, <code>_required</code>, <code>_progress</code>, <code>_percent</code>, <code>_completed</code>.</li></ul></div><div class="doc-card half"><h3>Leaderboard</h3><p><code>%caucavancan_top_caught_1_name%</code>, <code>top_largest_1_value</code>, và <code>top_rare_1_fish</code> lấy entry hạng tương ứng. Hậu tố hỗ trợ <code>name/player</code>, <code>uuid</code>, <code>fish</code>, <code>value</code>.</p><p>Global: <code>latest_rare_fish</code>, <code>latest_rare_player</code>, <code>global_total_caught</code>, <code>active_sessions</code>.</p></div></div>`
+    html: `<div class="content-grid"><div class="doc-card"><h3>Player và phiên câu</h3>${table(["Placeholder", "Giá trị"], [["<code>%caucavancan_total_caught%</code>", "Tổng câu thành công."],["<code>%caucavancan_failed%</code>, <code>attempts</code>, <code>streak</code>, <code>best_streak</code>", "Thống kê cơ bản."],["<code>%caucavancan_success_rate%</code>", "Tỷ lệ thành công (%)."],["<code>%caucavancan_largest_weight%</code>, <code>total_weight</code>", "Cân lớn nhất/tổng cân."],["<code>%caucavancan_total_fish_damage%</code> (alias <code>fish_damage</code>)", "Tổng sát thương thực tế đã gây lên cá. Chỉ tính từ bản Core có stat này."],["<code>%caucavancan_fishing_level%</code>, <code>character_exp%</code>, <code>next_level_exp%</code>", "Tiến trình character."],["<code>%caucavancan_attribute_points%</code>, <code>skill_points%</code>, <code>mana%</code>", "Tài nguyên character."],["<code>%caucavancan_stamina%</code>, <code>stamina_max%</code>, <code>stamina_percent%</code>", "Stamina skill CCVC hiện tại/tối đa/phần trăm."],["<code>%caucavancan_fishing_energy%</code>, <code>fishing_energy_max%</code>, <code>fishing_energy_percent%</code>", "Năng lượng câu cá CCVC hiện tại/tối đa/phần trăm."],["<code>%caucavancan_fishing_energy_recovery%</code>", "Thời gian còn lại để Năng lượng câu cá đầy, dạng đọc được (<code>24h</code>, <code>2h 15m</code>, <code>Đầy</code>)."],["<code>%caucavancan_fishing_energy_recovery_seconds%</code>", "Thời gian hồi Năng lượng câu cá còn lại bằng giây."],["<code>%caucavancan_fishing_energy_recovery_total%</code>", "Tổng thời gian hồi Năng lượng câu cá, mặc định <code>24h</code>."],["<code>%caucavancan_is_fishing%</code>, <code>fish_name%</code>, <code>fish_id%</code>, <code>fish_rarity%</code>", "Trạng thái/cá đang đấu."],["<code>%caucavancan_fish_health%</code>, <code>fish_health_max%</code>, <code>line_current%</code>, <code>line_max%</code>", "Chỉ số session."],["<code>%caucavancan_tug_active%</code>, <code>tug_players%</code>, <code>tug_leader%</code>", "Tug PvP."]])}</div><div class="doc-card half"><h3>Placeholder động</h3><ul><li><code>%caucavancan_stat_&lt;stat-id&gt;%</code>: stat ID, dấu <code>_</code> chuyển thành <code>-</code>.</li><li><code>%caucavancan_attribute_&lt;id&gt;%</code>: level thuộc tính, ví dụ <code>attribute_khoe</code>.</li><li><code>%caucavancan_skill_level_&lt;id&gt;%</code>: skill level.</li><li><code>%caucavancan_bait_used_&lt;type&gt;%</code>: số mồi type đã dùng.</li><li><code>%caucavancan_soul_&lt;soul-id&gt;%</code>: số Soul CCVC có trong inventory của player online.</li><li><code>%caucavancan_daily_quest_1_id%</code>, <code>_type</code>, <code>_target</code>, <code>_required</code>, <code>_progress</code>, <code>_percent</code>, <code>_completed</code>.</li></ul></div><div class="doc-card half"><h3>Leaderboard</h3><p><code>%caucavancan_top_caught_1_name%</code>, <code>top_largest_1_value</code>, <code>top_damage_1_value</code>, và <code>top_rare_1_fish</code> lấy entry hạng tương ứng. Hậu tố hỗ trợ <code>name/player</code>, <code>uuid</code>, <code>fish</code>, <code>value</code>.</p><p>Top damage xếp theo sát thương thực tế tích lũy, được giới hạn bởi HP cá để không cộng dư khi overkill. Global: <code>latest_rare_fish</code>, <code>latest_rare_player</code>, <code>global_total_caught</code>, <code>active_sessions</code>.</p></div></div>`
   },
   {
     id: "api", title: "Developer API", icon: "code-2", keywords: "developer api fishingapi servicesmanager events java plugin integration", desc: "Lấy FishingApi qua Bukkit ServicesManager, thao tác session/character và nghe sự kiện công khai.",
@@ -398,6 +412,70 @@ const sections = [
     html: `<div class="content-grid"><div class="doc-card half"><h3>Phiên bản tài liệu</h3><p>Wiki này khớp source <strong>CauCaVanCanCore ${VERSION}</strong>, bao gồm attribute KaMenu dialog, fee reset config, trọng số large premium 0.05, EXP/hologram, stamina skill, công thức bán cá và API <code>FishingApi</code>.</p>${pills(["Java 25", "Maven", "Spigot/Paper API 26.1.2", "PacketEvents 2.13.0"], "good")}</div><div class="doc-card half"><h3>Repository</h3><p><a class="text-button" href="https://github.com/NguyenSonhoa/CauCaVanCanWiki" target="_blank" rel="noreferrer">${icon("github", 16)} Repository wiki</a></p><p>Source core hiện được đối chiếu từ workspace triển khai. Khi core đổi key/API, cập nhật section liên quan và ghi rõ version để admin không copy config của bản khác.</p></div></div>`
   }
 ];
+
+// 03/09/2026: these sections are verified against the JAR and YAML deployed to the live server.
+// Keep this override separate so it does not discard the existing leaderboard documentation update.
+function sectionById(id) {
+  const section = sections.find((entry) => entry.id === id);
+  if (!section) throw new Error(`Missing wiki section: ${id}`);
+  return section;
+}
+
+const menusSection = sectionById("menus");
+menusSection.html = menusSection.html
+  .replace(
+    '<tr><td><code>boost-menu.yml</code></td><td>Mua boost PlayerPoints.</td></tr>',
+    '<tr><td><code>boost-menu.yml</code></td><td>Mua phúc lợi toàn server bằng PlayerPoints; item đang hiệu lực phát sáng.</td></tr><tr><td><code>daily-quests-menu.yml</code></td><td>Hiển thị ba nhiệm vụ ngày ngẫu nhiên và tiến độ.</td></tr>'
+  );
+
+const commandsSection = sectionById("commands");
+commandsSection.html = commandsSection.html
+  .replace(
+    '<tr><td><code>/fish soul</code></td><td>Xem tiến độ craft Linh Hồn.</td></tr><tr><td><code>/fish soul craft &lt;id&gt;</code></td><td>Craft Cần câu Linh Hồn khi đủ Soul/tiền.</td></tr>',
+    '<tr><td><code>/fish soul</code></td><td>Nhắc Lò Ghép Mảnh MMOItems; CCVC không craft trực tiếp.</td></tr>'
+  )
+  .replace(
+    'EXP/GOLD/WEAKEN/POWER/EXCLUSIVE.',
+    'BIG_FISH/EXCLUSIVE/EXP/GOLD/POWER/SKILL_DAMAGE/WEAKEN.'
+  )
+  .replace(
+    '<span class="pill warn">caucavancan.soul.craft</span>',
+    ''
+  );
+
+const poolsSection = sectionById("pools");
+poolsSection.html = poolsSection.html.replace(
+  /<\/div>$/,
+  `<div class="doc-card"><h3>Vé premium theo ngày</h3><p><code>daily-ticket.timezone</code> đặt mốc ngày là <code>Asia/Bangkok</code>. Mỗi người chỉ được nhận tối đa <code>86400</code> giây (24 giờ) từ mọi nguồn trong một ngày; đúng 00:00, phần vé chưa dùng bị xóa.</p><p>Thời gian chỉ giảm khi người chơi đang đứng trong region premium. Online ở nơi khác không bị trừ. Khi vé về 0 trong region, core đưa người chơi tới <code>exit</code> và gửi message hết vé.</p></div></div>`
+);
+
+const soulsSection = sectionById("souls-energy");
+soulsSection.title = "Mảnh ghép, Năng lượng và Stamina";
+soulsSection.desc = "Mảnh MMOItems theo hồ, Năng lượng câu cá và Stamina skill CCVC là ba hệ thống riêng.";
+soulsSection.html = `<div class="content-grid"><div class="doc-card"><h3>Mảnh ghép theo hồ</h3>${table(["Trường hợp", "Cách roll"], [["Rác/cá thường", "<code>pools.&lt;pool-id&gt;.regular</code> roll sau khi reward được tạo. Chọn rác bằng <code>include-trash</code>; cá bằng <code>eligible-rarities</code> như SMALL/MEDIUM."],["Cá độc quyền", "<code>pools.&lt;pool-id&gt;.exclusive.&lt;fish-id&gt;</code> có chance và mảnh riêng; là nhóm tách biệt, không nhận bonus LARGE."],["Hồ premium", "Dùng ID pool trong <code>premium-pools.yml</code>; có thể đặt regular LARGE/VERY_LARGE và exclusive riêng."]])}<p>Mỗi mảnh là item MMOItems do CCVC trao và đóng dấu PDC ID. Chance dùng số thập phân (<code>0.20 = 20%</code>); map <code>souls</code> trong regular là trọng số để chọn đúng một mảnh sau khi roll trúng.</p></div><div class="doc-card half"><h3>Config mảnh</h3>${codeBlock("souls.yml", snippets.soul, "yaml")}<p>ID pool/fish phải khớp chính xác với spawn, premium pool và file fish. Khai báo MMOItems item trước khi bật drop.</p></div><div class="doc-card half"><h3>Ghép cần câu</h3><p>CCVC chỉ trao mảnh; recipe, nguyên liệu và item đầu ra do <strong>MMOItems Crafting Station</strong> quản lý. Copy <code>mmoitems/crafting-stations/ccvc-soul-forge.yml</code> sang <code>plugins/MMOItems/crafting-stations/</code>, khai báo recipe của server rồi chạy <code>/mi reload</code>.</p>${callout("warn", "Không còn cấu hình <code>crafts:</code> hoặc dùng <code>/fish soul craft</code> để craft trong CCVC. <code>/fish soul</code> sẽ hướng người chơi tới Lò Ghép Mảnh đã cấu hình.")}</div><div class="doc-card half"><h3>Năng lượng câu cá</h3>${codeBlock("config.yml", snippets.energy, "yaml")}<p>Năng lượng lưu SQLite, tách với Stamina/MMOCore. Core chỉ trừ <code>success-cost</code> sau khi nhận cá hoặc rác; fail, đứt dây hay hủy phiên không bị trừ. Timer 24 giờ vẫn hồi khi offline.</p></div><div class="doc-card half"><h3>Stamina skill CCVC</h3>${codeBlock("config.yml", snippets.skillStamina, "yaml")}<p>Stamina chỉ trả <code>stamina-cost</code> khi cast skill. Giữ Shift kéo cá không tiêu Stamina; thanh này tách với Năng lượng câu cá và MMOCore.</p></div></div>`;
+
+const characterSection = sectionById("character");
+characterSection.html = characterSection.html.replace(
+  /<\/div>$/,
+  `<div class="doc-card"><h3>Hồi phục từ trang bị/MMOItems</h3><p>Hai stat <code>FISHING_HEALTH_REGEN</code> và <code>FISHING_STAMINA_REGEN</code> được map lần lượt thành <code>fishing-health-regen</code> và <code>fishing-stamina-regen</code> trong <code>character-core.yml</code>. Giá trị là phần trăm hồi mỗi giây trong battle câu cá.</p><p>Tên và lore mô tả của bình/trang bị do MMOItems định nghĩa; nên ghi rõ “hồi X% máu” hoặc “hồi X% Stamina mỗi giây khi câu” để tránh nhầm với hồi ngoài battle.</p></div></div>`
+);
+
+const extraSection = sectionById("extra");
+extraSection.title = "Boost, quest, mảnh ghép và premium";
+extraSection.desc = "Phúc lợi toàn server, đan dược cá nhân, nhiệm vụ ngày, mảnh MMOItems, ticket premium và leaderboard.";
+extraSection.html = `<div class="content-grid"><div class="doc-card"><h3>Phúc lợi toàn server</h3><p><code>gui/boost-menu.yml</code> bán bằng PlayerPoints bảy boost GLOBAL: <code>BIG_FISH</code>, <code>EXCLUSIVE</code>, <code>EXP</code>, <code>GOLD</code>, <code>POWER</code>, <code>SKILL_DAMAGE</code> và <code>WEAKEN</code>. Mỗi nút hiển thị trạng thái, thời gian còn lại và người gia hạn gần nhất; boost có hiệu lực được phát sáng.</p><p>Khi mua thành công, toàn server nhận broadcast, title và sound. Lệnh admin <code>/fish boost[global] &lt;type&gt; &lt;percent&gt; &lt;seconds&gt;</code> vẫn dùng được cho mọi type trên.</p></div><div class="doc-card half"><h3>Đan dược boost cá nhân</h3>${codeBlock("personal-boosts.yml", snippets.personalBoosts, "yaml")}<p>Item phải là MMOItems <code>CONSUMABLE</code> khớp type/ID. EXP có ba mức 15/20/30%, mỗi viên kéo dài 30 phút. <code>BIG_FISH</code>, <code>EXCLUSIVE</code>, <code>POWER</code> và <code>SKILL_DAMAGE</code> +15% là one-shot: dùng trước khi câu và mất sau khi lượt kế tiếp thành công, thất bại hoặc bị hủy.</p></div><div class="doc-card half"><h3>HUD EXP cá nhân</h3><p>BetterHud có thể hiển thị timer bằng <code>%caucavancan_boost_exp_seconds%</code> hoặc <code>%caucavancan_boost_exp_time%</code>. Đây là boost cá nhân, không phải thời gian phúc lợi GLOBAL trong menu.</p></div><div class="doc-card"><h3>Nhiệm vụ ngày</h3><p><code>daily-quests.yml</code> chọn ngẫu nhiên <code>quests-per-day: 3</code> quest. Ngoài <code>CATCH_ANY</code>, <code>CATCH_FISH</code>, <code>CATCH_EXCLUSIVE</code>, <code>CATCH_WORLD</code>, <code>USE_BAIT</code>, <code>USE_BAIT_TYPE</code> và <code>WIN_TUG</code>, bản live hỗ trợ quest tier: <code>CATCH_SMALL</code>, <code>CATCH_MEDIUM</code>, <code>CATCH_LARGE</code>, <code>CATCH_VERY_LARGE</code>. Reward chạy bằng console command cấu hình.</p></div><div class="doc-card half"><h3>Leaderboard</h3><p>Bảng top có tổng số cá câu được, cá nặng nhất, sát thương thực tế lên cá và cá rare. Damage chỉ cộng tối đa đến HP còn lại của cá, nên overkill không làm sai thứ hạng.</p></div><div class="doc-card half"><h3>Ticket premium</h3><p>Vé chỉ giảm lúc người chơi ở region premium, reset phần chưa dùng lúc 00:00 Asia/Bangkok và nhận tối đa 24 giờ/ngày. Khi hết vé trong region, người chơi bị đưa về <code>exit</code>.</p></div><div class="doc-card"><h3>Tug PvP</h3><p><code>tug-pvp.yml</code> điều khiển proximity join, control bar, cooldown, countdown, max participants, damage threshold và hook-PvP. Có thể tắt hoàn toàn bằng <code>enabled</code>.</p></div></div>`;
+
+const placeholderSection = sectionById("placeholders");
+placeholderSection.html = placeholderSection.html.replace(
+  /<\/div>$/,
+  `<div class="doc-card"><h3>Boost EXP cá nhân</h3><p><code>%caucavancan_boost_exp_seconds%</code> (alias <code>boost_exp_remaining_seconds</code>, <code>exp_boost_seconds</code>) trả số giây còn lại. <code>%caucavancan_boost_exp_time%</code> (alias <code>boost_exp_remaining</code>, <code>exp_boost_time</code>) trả định dạng như <code>29m 59s</code>.</p></div></div>`
+);
+
+const releaseSection = sectionById("release");
+releaseSection.html = releaseSection.html.replace(
+  /<\/div>$/,
+  `<div class="doc-card"><h3>Đối chiếu deploy 03/09/2026</h3><p>Wiki đã được đối chiếu với JAR và YAML deploy lên server: phúc lợi GLOBAL, consumable cá nhân, quest tier, ticket premium theo Asia/Bangkok, mảnh/MMOItems Crafting Station, lore hồi phục và leaderboard damage.</p></div></div>`
+);
 
 const header = document.getElementById("siteHeader");
 const sidebar = document.getElementById("sidebar");
